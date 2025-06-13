@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Course Management App</title>
+  <style>
+    body {
+      margin: 0;
+      font-family: "Segoe UI", sans-serif;
+      background: #f4f6f8;
+    }
+
+    header {
+      background: #1e88e5;
+      color: white;
+      padding: 1rem 2rem;
+      text-align: center;
+      font-size: 1.5rem;
+    }
+
+    .container {
+      max-width: 900px;
+      margin: 2rem auto;
+      background: white;
+      padding: 2rem;
+      box-shadow: 0 0 10px rgba(0,0,0,0.1);
+      border-radius: 8px;
+    }
+
+    h2 {
+      margin-top: 0;
+      color: #333;
+    }
+
+    form {
+      display: grid;
+      gap: 1rem;
+      margin-bottom: 2rem;
+    }
+
+    input {
+      padding: 0.6rem;
+      font-size: 1rem;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+      width: 100%;
+    }
+
+    .form-row {
+      display: flex;
+      gap: 1rem;
+    }
+
+    .btn-group {
+      display: flex;
+      gap: 0.5rem;
+      flex-wrap: wrap;
+    }
+
+    button {
+      padding: 0.6rem 1.2rem;
+      border: none;
+      border-radius: 4px;
+      font-size: 1rem;
+      cursor: pointer;
+      transition: background 0.3s;
+    }
+
+    .btn-primary { background-color: #1e88e5; color: white; }
+    .btn-primary:hover { background-color: #1565c0; }
+
+    .btn-danger { background-color: #e53935; color: white; }
+    .btn-danger:hover { background-color: #c62828; }
+
+    .btn-secondary { background-color: #9e9e9e; color: white; }
+    .btn-secondary:hover { background-color: #616161; }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 1rem;
+    }
+
+    th, td {
+      padding: 0.8rem;
+      text-align: left;
+      border-bottom: 1px solid #ddd;
+    }
+
+    th {
+      background-color: #f5f5f5;
+    }
+
+    .error {
+      color: #d32f2f;
+      font-weight: bold;
+    }
+  </style>
+</head>
+<body>
+  <header>Course Management App</header>
+  <div class="container">
+    <h2>Course Management Form</h2>
+    <form id="courseForm">
+      <div class="form-row">
+        <input type="text" id="courseId" placeholder="Course ID (for Update/Delete)" />
+      </div>
+      <div class="form-row">
+        <input type="text" id="name" placeholder="Name" required />
+        <input type="text" id="duration" placeholder="Duration" required />
+        <input type="text" id="instructor" placeholder="Instructor" required />
+      </div>
+      <div class="btn-group">
+        <button type="button" class="btn-primary" onclick="addCourse()">Add Course</button>
+        <button type="button" class="btn-secondary" onclick="updateCourse()">Update Course</button>
+        <button type="button" class="btn-danger" onclick="deleteCourse()">Delete Course</button>
+        <button type="button" onclick="fetchCourses()">Refresh Course List</button>
+      </div>
+      <div class="error" id="errorMessage"></div>
+    </form>
+
+    <h2>All Courses</h2>
+    <table>
+      <thead>
+        <tr>
+          <th>ID</th>
+          <th>Name</th>
+          <th>Duration</th>
+          <th>Instructor</th>
+        </tr>
+      </thead>
+      <tbody id="courseTableBody"></tbody>
+    </table>
+  </div>
+
+  <script>
+    const API_URL = "http://localhost:8080";
+
+    function fetchCourses() {
+      fetch(`${API_URL}/courses`)
+        .then(res => res.json())
+        .then(data => {
+          const tableBody = document.getElementById("courseTableBody");
+          tableBody.innerHTML = "";
+          data.forEach(course => {
+            const row = `<tr>
+              <td>${course.id}</td>
+              <td>${course.name}</td>
+              <td>${course.duration}</td>
+              <td>${course.instructor}</td>
+            </tr>`;
+            tableBody.innerHTML += row;
+          });
+        });
+    }
+
+    function addCourse() {
+      const course = getCourseInput();
+      fetch(`${API_URL}/course`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(course),
+      })
+      .then(res => {
+        if (!res.ok) throw new Error("Error adding course");
+        return res.json();
+      })
+      .then(() => {
+        fetchCourses();
+        clearForm();
+        document.getElementById("errorMessage").innerText = "";
+      })
+      .catch(err => document.getElementById("errorMessage").innerText = err.message);
+    }
+
+    function updateCourse() {
+      const id = document.getElementById("courseId").value;
+      const course = getCourseInput();
+      fetch(`${API_URL}/course/${id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(course),
+      })
+      .then(res => {
+        if (!res.ok) throw new Error("Error updating course");
+        return res.json();
+      })
+      .then(() => {
+        fetchCourses();
+        clearForm();
+        document.getElementById("errorMessage").innerText = "";
+      })
+      .catch(err => document.getElementById("errorMessage").innerText = err.message);
+    }
+
+    function deleteCourse() {
+      const id = document.getElementById("courseId").value;
+      fetch(`${API_URL}/course/${id}`, { method: "DELETE" })
+      .then(res => {
+        if (!res.ok) throw new Error("Error deleting course");
+        fetchCourses();
+        clearForm();
+        document.getElementById("errorMessage").innerText = "";
+      })
+      .catch(err => document.getElementById("errorMessage").innerText = err.message);
+    }
+
+    function getCourseInput() {
+      return {
+        name: document.getElementById("name").value,
+        duration: document.getElementById("duration").value,
+        instructor: document.getElementById("instructor").value,
+      };
+    }
+
+    function clearForm() {
+      document.getElementById("courseId").value = "";
+      document.getElementById("name").value = "";
+      document.getElementById("duration").value = "";
+      document.getElementById("instructor").value = "";
+    }
+
+    window.onload = fetchCourses;
+  </script>
+</body>
+</html>
